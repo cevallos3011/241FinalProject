@@ -5,7 +5,64 @@ date: "4/30/2020"
 output: pdf_document
 ---
 
+
+#241 Final Project
+
+##Clean Up Data
+
 ```{r}
-#Master RMD
+library(haven)
+library(dplyr)
+togo_data_dhs <- read_dta("togo data dhs.dta")
+View(togo_data_dhs)
+
+new_data <- togo_data_dhs
+
+new_data <- as.data.frame(new_data)
+
+colnames(new_data)
+new_data <- new_data %>% select("mv035", "mv034b_1", "v302a", "v190")
+
+str(togo_data_dhs$v190)
+
+colnames(new_data) <- c("num_of_partners", "age_of_partner", "contraception", "wealth_index")
+
+new_data$num_of_partners <- as.numeric(new_data$num_of_partners)
+new_data$age_of_partner <- as.numeric(new_data$age_of_partner)
+new_data$contraception <- as.numeric(new_data$contraception)
+new_data$wealth_index <- as.numeric(new_data$wealth_index)
+
+summary(new_data)
+
+easy_data <- new_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_partner > 21, 1, 0))
+easy_data <- easy_data %>% mutate(contraception_yes = ifelse(contraception >= 1, 1, 0))
+
+easy_data$age_greater_than_twenty_one <- as.factor(easy_data$age_greater_than_twenty_one)
+easy_data$contraception_yes <- as.factor(easy_data$contraception_yes)
 ```
 
+
+## Library's needed for modeling  
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(foreign)
+library(tidyverse)
+library(epitools)
+library(lmtest)
+```
+
+## First Easiest Model
+
+Let $X$ be a dummy variable equal to 1 if the age of partner is greater than or equal to 21 and zero otherwise. We fit a logistic model with this covariate.
+  
+  $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
+The null hypothesis is that the contraception is the same for everyone regardless of age and can be formulated as $H_0: b =0$ vs $H_1: b \neq 0.$
+
+```{r}
+model_one <-glm(contraception_yes~age_greater_than_twenty_one, data = easy_data, 
+           family =binomial("logit"))
+summary(model_one) # Model Results + Wald Test
+lrtest(model_one)
+```
