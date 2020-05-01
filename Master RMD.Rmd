@@ -65,4 +65,29 @@ model_one <-glm(contraception_yes~age_greater_than_twenty_one, data = easy_data,
            family =binomial("logit"))
 summary(model_one) # Model Results + Wald Test
 lrtest(model_one)
+confint(model_one)
+```
+
+## Second Model
+
+Let $X$ be a dummy variable equal to 1 if the age of partner is greater than or equal to 21 and zero otherwise. We fit a logistic model with this covariate.
+  
+  $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
+The null hypothesis is that the contraception is the same for everyone regardless of age and can be formulated as $H_0: b =0$ vs $H_1: b \neq 0.$
+
+```{r}
+model_one <-glm(contraception_yes~age_greater_than_twenty_one, data = easy_data, 
+           family =binomial("logit"))
+summary(model_one) # Model Results + Wald Test
+lrtest(model_one)
+confint(model_one)
+```
+
+
+```{r}
+model_two <-glm(contraception_yes~age_greater_than_twenty_one + wealth_index, data = easy_data, 
+           family = binomial("logit"))
+summary(model_two) # Model Results + Wald Test
+lrtest(model_two)
+confint(model_two)
 ```
