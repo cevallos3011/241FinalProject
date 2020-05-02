@@ -26,11 +26,7 @@ new_data <- new_data %>% select("v012",
 "v312", 
 "v362", 
 "v393", 
-"v394", 
-"v395", 
-"v3a03",
-"v3a04",
-"v3a05")
+"v394")
 
 colnames(new_data) <- c("age_of_respondent",
 "contraception", 
@@ -43,25 +39,23 @@ colnames(new_data) <- c("age_of_respondent",
 "current_contraceptive_method", 
 "intention_to_use_current_contraceptive_method",
 "visited_by_family_planning_worker_last_12 months", 
-"visited_health_facility_last_12 months",
-"at_health_facility_told_of_family_planning", 
-"told_about_side_effects_by_health_or_family_planning_worker", 
-"told_how_to_deal_with_side_effects", 
-"told_about_other_family_planning_methods")
+"visited_health_facility_last_twelve_months")
 ```
 
 ## Specific Data Manipulation - Creation of easy data
 ```{r}
 #Filter out women who are older than 50 
 easy_data <- new_data %>% filter(age_of_respondent <= 50)
+
+#Filter out rows with N/As in any part of the data set
+easy_data <- easy_data[!is.na(easy_data$intention_to_use_current_contraceptive_method),]
+easy_data <- easy_data[!is.na(easy_data$religion),]
+#Make a few variables binary
 easy_data <- easy_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_respondent > 21, 1, 0))
 easy_data <- easy_data %>% mutate(contraception_yes = ifelse(contraception >= 1, 1, 0))
 easy_data$age_greater_than_twenty_one <- as.factor(easy_data$age_greater_than_twenty_one)
 easy_data$contraception_yes <- as.factor(easy_data$contraception_yes)
 ```
-
-
-
 
 ## Library's needed for modeling  
 
@@ -86,7 +80,7 @@ lrtest(model_zero)# Likelihood Ratio Test
 confint(model_zero)# Confidence Interval
 ```
 
-## First Model
+## Models with single variable 
 
 Let $X$ be a dummy variable equal to 1 if the age of partner is greater than or equal to 21 and zero otherwise. We fit a logistic model with this covariate.
   
@@ -103,84 +97,104 @@ confint(model_one)# Confidence Interval
 broom::tidy(model_one,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
 ```
 
-## Second Model
+## Models of single variable
   
-We now define $X$ to be a variable taking the age of the individual in togo and let us regress fit the logistic model
+We now define $X$ to be any one variable in our data set. We regress fit the logistic models for every single variable. 
 
 $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
 We want to test $H0 : b= 0$.
 ```{r}
-model_two <-glm(contraception_yes ~ age_of_respondent, data = easy_data, 
+#1
+ model_age_of_respondent <-glm(contraception_yes ~ age_of_respondent, data = easy_data, 
            family =binomial("logit"))
 
-summary(model_two)# Model Results + Wald Test
-lrtest(model_two)# Likelihood Ratio Test
-confint(model_two)# Confidence Interval
+summary(model_age_of_respondent)# Model Results + Wald Test
+lrtest(model_age_of_respondent)# Likelihood Ratio Test
 
+#2
+model_age_of_partner <-glm(contraception_yes ~ age_of_partner, data = easy_data, 
+           family =binomial("logit"))
 
-broom::tidy(model_two,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
+summary(model_age_of_partner)# Model Results + Wald Test
+lrtest(model_age_of_partner)# Likelihood Ratio Test
+
+#3
+model_wealth_index <-glm(contraception_yes ~ wealth_index, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_wealth_index)# Model Results + Wald Test
+lrtest(model_wealth_index)# Likelihood Ratio Test
+
+#4
+model_education_level <-glm(contraception_yes ~ education_level, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_education_level )# Model Results + Wald Test
+lrtest(model_education_level )# Likelihood Ratio Test
+
+#5
+model_num_of_partners <-glm(contraception_yes ~  num_of_partners, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_num_of_partners)# Model Results + Wald Test
+lrtest(model_num_of_partners)# Likelihood Ratio Test
+           
+#6
+model_religion <-glm(contraception_yes ~religion, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_religion)# Model Results + Wald Test
+lrtest(model_religion)# Likelihood Ratio Test
+
+#7    
+model_intention_to_use_current_contraceptive_method <-glm(contraception_yes ~ intention_to_use_current_contraceptive_method, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_intention_to_use_current_contraceptive_method)# Model Results + Wald Test
+lrtest(model_intention_to_use_current_contraceptive_method)# Likelihood Ratio Test
+
+#8
+model_visited_health_facility_last_twelve_months <-glm(contraception_yes ~ visited_health_facility_last_twelve_months, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_visited_health_facility_last_twelve_months)# Model Results + Wald Test
+lrtest(model_visited_health_facility_last_twelve_months)# Likelihood Ratio Test
+     
+#summary()# Model Results + Wald Test
+#lrtest()# Likelihood Ratio Test
+#confint()# Confidence Interval
+#broom::tidy(,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI          
 ```
 
-
-## Third Model
+## Model of all variables together and likelihood ratio test of nested models 
   
-We now define a variable $Y$ to be a variable describing the wealth of an individual in togo and let us regress fit the logistic model. 
+We now add variables $X,Y,Z, etc..$ together in the same model and regress fit the logistic model. 
 
-$$\log\left( \frac{p}{1-p}\right) = a + cY.$$
+$$\log\left( \frac{p}{1-p}\right) = a +bX+cY+dZ... etc$$
 We want to test $H0 : b= 0$.
 ```{r}
-model_three <-glm(contraception_yes ~ wealth_index, data = easy_data, 
-           family =binomial("logit"))
+model_everything <-glm(contraception_yes ~ age_of_respondent + age_of_partner + wealth_index + education_level + num_of_partners + religion + intention_to_use_current_contraceptive_method + visited_health_facility_last_twelve_months, data= easy_data, family =binomial("logit"))
 
-summary(model_three)# Model Results + Wald Test
-lrtest(model_three)# Likelihood Ratio Test
-confint(model_three)# Confidence Interval
-
-
-broom::tidy(model_three,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
-```
-
-
-## Fourth Model
-  
-We now define a variable $Z$ to be a variable describing the number of partners of an individual in togo and let us regress fit the logistic model. 
-
-$$\log\left( \frac{p}{1-p}\right) = a +dZ.$$
-We want to test $H0 : b= 0$.
-```{r}
-model_four <-glm(contraception_yes ~ num_of_partners, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_four)# Model Results + Wald Test
-lrtest(model_four)# Likelihood Ratio Test
-confint(model_four)# Confidence Interval
-
-
-broom::tidy(model_four,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
-```
-
-## Fifth Model
-  
-We now add variables $X,Y,Z$ together in the same model and regress fit the logistic model. 
-
-$$\log\left( \frac{p}{1-p}\right) = a +bX+cY+dZ.$$
-We want to test $H0 : b= 0$.
-```{r}
-model_five <-glm(contraception_yes ~ age_of_respondent + wealth_index+num_of_partners, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_five )# Model Results + Wald Test
-lrtest(model_five )# Likelihood Ratio Test
-confint(model_five )# Confidence Interval
-
-
-broom::tidy(model_five,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
+summary(model_everything)# Model Results + Wald Test
+lrtest(model_everything)# Likelihood Ratio Test
 ```
 
 
 ## Comparison of all the models to see which is the best
 
 blah blah blah
+
+
 ```{r}
-lrtest(model_zero, model_one, model_two, model_three, model_four, model_five)
+
+##Ahh I can't get this to work! 
+lrtest(model_everything, 
+model_age_of_respondent, 
+model_age_of_partner, 
+model_wealth_index, 
+model_education_level, 
+model_num_of_partners, 
+model_religion, 
+model_intention_to_use_current_contraceptive_method, 
+model_visited_health_facility_last_twelve_months)
 ```
