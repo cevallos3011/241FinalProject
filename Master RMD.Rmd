@@ -15,28 +15,19 @@ library(haven)
 library(dplyr)
 togo_data_dhs <- read_dta("togo data dhs.dta")
 View(togo_data_dhs)
-
 new_data <- togo_data_dhs
-
 new_data <- as.data.frame(new_data)
-
 colnames(new_data)
 new_data <- new_data %>% select("mv035", "mv034b_1", "v302a", "v190")
-
 str(togo_data_dhs$v190)
-
 colnames(new_data) <- c("num_of_partners", "age_of_partner", "contraception", "wealth_index")
-
 new_data$num_of_partners <- as.numeric(new_data$num_of_partners)
 new_data$age_of_partner <- as.numeric(new_data$age_of_partner)
 new_data$contraception <- as.numeric(new_data$contraception)
 new_data$wealth_index <- as.numeric(new_data$wealth_index)
-
 summary(new_data)
-
 easy_data <- new_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_partner > 21, 1, 0))
 easy_data <- easy_data %>% mutate(contraception_yes = ifelse(contraception >= 1, 1, 0))
-
 easy_data$age_greater_than_twenty_one <- as.factor(easy_data$age_greater_than_twenty_one)
 easy_data$contraception_yes <- as.factor(easy_data$contraception_yes)
 ```
@@ -53,7 +44,26 @@ library(epitools)
 library(lmtest)
 ```
 
-## First Easiest Model
+## Model 0 
+
+Blah blah blah 
+
+```{r}
+model_zero <-glm(contraception_yes ~1, data=easy_data, 
+           family =binomial("logit"))
+summary(model_zero) # Model Results + Wald Test
+lrtest(model_zero)# Likelihood Ratio Test
+confint(model_zero)# Confidence Interval
+```
+
+
+
+
+
+
+
+
+## First Model
 
 Let $X$ be a dummy variable equal to 1 if the age of partner is greater than or equal to 21 and zero otherwise. We fit a logistic model with this covariate.
   
@@ -64,30 +74,91 @@ The null hypothesis is that the contraception is the same for everyone regardles
 model_one <-glm(contraception_yes~age_greater_than_twenty_one, data = easy_data, 
            family =binomial("logit"))
 summary(model_one) # Model Results + Wald Test
-lrtest(model_one)
-confint(model_one)
+lrtest(model_one)# Likelihood Ratio Test
+confint(model_one)# Confidence Interval
+
+broom::tidy(model_one,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
 ```
 
 ## Second Model
-
-Let $X$ be a dummy variable equal to 1 if the age of partner is greater than or equal to 21 and zero otherwise. We fit a logistic model with this covariate.
   
-  $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
-The null hypothesis is that the contraception is the same for everyone regardless of age and can be formulated as $H_0: b =0$ vs $H_1: b \neq 0.$
+We now define $X$ to be a variable taking the age of the individual in togo and let us regress fit the logistic model
 
+$$\log\left( \frac{p}{1-p}\right) = a + bX.$$
+We want to test $H0 : b= 0$.
 ```{r}
-model_one <-glm(contraception_yes~age_greater_than_twenty_one, data = easy_data, 
+model_two <-glm(contraception_yes ~age_of_partner, data = easy_data, 
            family =binomial("logit"))
-summary(model_one) # Model Results + Wald Test
-lrtest(model_one)
-confint(model_one)
+
+summary(model_two)# Model Results + Wald Test
+lrtest(model_two)# Likelihood Ratio Test
+confint(model_two)# Confidence Interval
+
+
+broom::tidy(model_two,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
 ```
 
 
+## Third Model
+  
+We now define a variable $Y$ to be a variable describing the wealth of an individual in togo and let us regress fit the logistic model. 
+
+$$\log\left( \frac{p}{1-p}\right) = a + cY.$$
+We want to test $H0 : b= 0$.
 ```{r}
-model_two <-glm(contraception_yes~age_greater_than_twenty_one + wealth_index, data = easy_data, 
-           family = binomial("logit"))
-summary(model_two) # Model Results + Wald Test
-lrtest(model_two)
-confint(model_two)
+model_three <-glm(contraception_yes ~ wealth_index, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_three)# Model Results + Wald Test
+lrtest(model_three)# Likelihood Ratio Test
+confint(model_three)# Confidence Interval
+
+
+broom::tidy(model_three,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
+```
+
+
+## Fourth Model
+  
+We now define a variable $Z$ to be a variable describing the number of partners of an individual in togo and let us regress fit the logistic model. 
+
+$$\log\left( \frac{p}{1-p}\right) = a +dZ.$$
+We want to test $H0 : b= 0$.
+```{r}
+model_four <-glm(contraception_yes ~ +num_of_partners, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_four)# Model Results + Wald Test
+lrtest(model_four)# Likelihood Ratio Test
+confint(model_four)# Confidence Interval
+
+
+broom::tidy(model_four,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
+```
+
+## Fifth Model
+  
+We now add variables $X,Y,Z$ together in the same model and regress fit the logistic model. 
+
+$$\log\left( \frac{p}{1-p}\right) = a +bX+cY+dZ.$$
+We want to test $H0 : b= 0$.
+```{r}
+model_five <-glm(contraception_yes ~ age_of_partner+ wealth_index+num_of_partners, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_five )# Model Results + Wald Test
+lrtest(model_five )# Likelihood Ratio Test
+confint(model_five )# Confidence Interval
+
+
+broom::tidy(model_five,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI
+```
+
+
+## Comparison of all the models to see which is the best
+
+blah blah blah
+```{r}
+lrtest(model_zero, model_one, model_two, model_three, model_four, model_five )
+
 ```
