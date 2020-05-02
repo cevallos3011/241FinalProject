@@ -9,28 +9,58 @@ output: pdf_document
 #241 Final Project
 
 ##Clean Up Data
-
 ```{r}
 library(haven)
 library(dplyr)
 togo_data_dhs <- read_dta("togo data dhs.dta")
-View(togo_data_dhs)
 new_data <- togo_data_dhs
 new_data <- as.data.frame(new_data)
-colnames(new_data)
-new_data <- new_data %>% select("mv035", "mv034b_1", "v302a", "v190")
-str(togo_data_dhs$v190)
-colnames(new_data) <- c("num_of_partners", "age_of_partner", "contraception", "wealth_index")
-new_data$num_of_partners <- as.numeric(new_data$num_of_partners)
-new_data$age_of_partner <- as.numeric(new_data$age_of_partner)
-new_data$contraception <- as.numeric(new_data$contraception)
-new_data$wealth_index <- as.numeric(new_data$wealth_index)
-summary(new_data)
-easy_data <- new_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_partner > 21, 1, 0))
+new_data <- new_data %>% select("v012", 
+"v302a", 
+"mv034b_1", 
+"v190", 
+"mv106",
+"mv151",
+"mv035", 
+"v130",
+"v312", 
+"v362", 
+"v393", 
+"v394", 
+"v395", 
+"v3a03",
+"v3a04",
+"v3a05")
+
+colnames(new_data) <- c("age_of_respondent",
+"contraception", 
+"age_of_partner", 
+"wealth_index", 
+"education_level",
+"sex_of_household_head",
+"num_of_partners", 
+"religion", 
+"current_contraceptive_method", 
+"intention_to_use_current_contraceptive_method",
+"visited_by_family_planning_worker_last_12 months", 
+"visited_health_facility_last_12 months",
+"at_health_facility_told_of_family_planning", 
+"told_about_side_effects_by_health_or_family_planning_worker", 
+"told_how_to_deal_with_side_effects", 
+"told_about_other_family_planning_methods")
+```
+
+## Specific Data Manipulation - Creation of easy data
+```{r}
+#Filter out women who are older than 50 
+easy_data <- new_data %>% filter(age_of_respondent <= 50)
+easy_data <- easy_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_respondent > 21, 1, 0))
 easy_data <- easy_data %>% mutate(contraception_yes = ifelse(contraception >= 1, 1, 0))
 easy_data$age_greater_than_twenty_one <- as.factor(easy_data$age_greater_than_twenty_one)
 easy_data$contraception_yes <- as.factor(easy_data$contraception_yes)
 ```
+
+
 
 
 ## Library's needed for modeling  
@@ -49,19 +79,12 @@ library(lmtest)
 Blah blah blah 
 
 ```{r}
-model_zero <-glm(contraception_yes ~1, data=easy_data, 
+model_zero <-glm(contraception_yes ~ 1, data=easy_data, 
            family =binomial("logit"))
 summary(model_zero) # Model Results + Wald Test
 lrtest(model_zero)# Likelihood Ratio Test
 confint(model_zero)# Confidence Interval
 ```
-
-
-
-
-
-
-
 
 ## First Model
 
@@ -87,7 +110,7 @@ We now define $X$ to be a variable taking the age of the individual in togo and 
 $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
 We want to test $H0 : b= 0$.
 ```{r}
-model_two <-glm(contraception_yes ~age_of_partner, data = easy_data, 
+model_two <-glm(contraception_yes ~ age_of_respondent, data = easy_data, 
            family =binomial("logit"))
 
 summary(model_two)# Model Results + Wald Test
@@ -125,7 +148,7 @@ We now define a variable $Z$ to be a variable describing the number of partners 
 $$\log\left( \frac{p}{1-p}\right) = a +dZ.$$
 We want to test $H0 : b= 0$.
 ```{r}
-model_four <-glm(contraception_yes ~ +num_of_partners, data = easy_data, 
+model_four <-glm(contraception_yes ~ num_of_partners, data = easy_data, 
            family =binomial("logit"))
 
 summary(model_four)# Model Results + Wald Test
@@ -143,7 +166,7 @@ We now add variables $X,Y,Z$ together in the same model and regress fit the logi
 $$\log\left( \frac{p}{1-p}\right) = a +bX+cY+dZ.$$
 We want to test $H0 : b= 0$.
 ```{r}
-model_five <-glm(contraception_yes ~ age_of_partner+ wealth_index+num_of_partners, data = easy_data, 
+model_five <-glm(contraception_yes ~ age_of_respondent + wealth_index+num_of_partners, data = easy_data, 
            family =binomial("logit"))
 
 summary(model_five )# Model Results + Wald Test
@@ -159,6 +182,5 @@ broom::tidy(model_five,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's
 
 blah blah blah
 ```{r}
-lrtest(model_zero, model_one, model_two, model_three, model_four, model_five )
-
+lrtest(model_zero, model_one, model_two, model_three, model_four, model_five)
 ```
