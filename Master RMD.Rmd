@@ -45,13 +45,10 @@ colnames(new_data) <- c("age_of_respondent",
 ## Specific Data Manipulation - Creation of easy data
 ```{r}
 #Filter out women who are older than 50 
-easy_data <- new_data %>% filter(age_of_respondent <= 50)
+easy_data <- new_data %>% filter(age_of_partner <= 50)
 
-#Filter out rows with N/As in any part of the data set
-easy_data <- easy_data[!is.na(easy_data$intention_to_use_current_contraceptive_method),]
-easy_data <- easy_data[!is.na(easy_data$religion),]
 #Make a few variables binary
-easy_data <- easy_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_respondent > 21, 1, 0))
+easy_data <- easy_data %>% mutate(age_greater_than_twenty_one = ifelse(age_of_partner > 21, 1, 0))
 easy_data <- easy_data %>% mutate(contraception_yes = ifelse(contraception >= 1, 1, 0))
 easy_data$age_greater_than_twenty_one <- as.factor(easy_data$age_greater_than_twenty_one)
 easy_data$contraception_yes <- as.factor(easy_data$contraception_yes)
@@ -105,66 +102,152 @@ $$\log\left( \frac{p}{1-p}\right) = a + bX.$$
 We want to test $H0 : b= 0$.
 ```{r}
 #1
- model_age_of_respondent <-glm(contraception_yes ~ age_of_respondent, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_age_of_respondent)# Model Results + Wald Test
-lrtest(model_age_of_respondent)# Likelihood Ratio Test
-
-#2
-model_age_of_partner <-glm(contraception_yes ~ age_of_partner, data = easy_data, 
+model_age_of_partner <-glm(contraception_yes ~ age_greater_than_twenty_one, data = easy_data, 
            family =binomial("logit"))
 
 summary(model_age_of_partner)# Model Results + Wald Test
 lrtest(model_age_of_partner)# Likelihood Ratio Test
-
-#3
-model_wealth_index <-glm(contraception_yes ~ wealth_index, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_wealth_index)# Model Results + Wald Test
-lrtest(model_wealth_index)# Likelihood Ratio Test
-
-#4
-model_education_level <-glm(contraception_yes ~ education_level, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_education_level )# Model Results + Wald Test
-lrtest(model_education_level )# Likelihood Ratio Test
-
-#5
-model_num_of_partners <-glm(contraception_yes ~  num_of_partners, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_num_of_partners)# Model Results + Wald Test
-lrtest(model_num_of_partners)# Likelihood Ratio Test
-           
-#6
-model_religion <-glm(contraception_yes ~religion, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_religion)# Model Results + Wald Test
-lrtest(model_religion)# Likelihood Ratio Test
-
-#7    
-model_intention_to_use_current_contraceptive_method <-glm(contraception_yes ~ intention_to_use_current_contraceptive_method, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_intention_to_use_current_contraceptive_method)# Model Results + Wald Test
-lrtest(model_intention_to_use_current_contraceptive_method)# Likelihood Ratio Test
-
-#8
-model_visited_health_facility_last_twelve_months <-glm(contraception_yes ~ visited_health_facility_last_twelve_months, data = easy_data, 
-           family =binomial("logit"))
-
-summary(model_visited_health_facility_last_twelve_months)# Model Results + Wald Test
-lrtest(model_visited_health_facility_last_twelve_months)# Likelihood Ratio Test
      
 #summary()# Model Results + Wald Test
 #lrtest()# Likelihood Ratio Test
 #confint()# Confidence Interval
 #broom::tidy(,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI          
 ```
+
+
+
+## Interactions
+
+```{r}
+#1
+model_with_interactions <-glm(contraception_yes ~ age_greater_than_twenty_one+ as.factor(wealth_index) + as.factor(wealth_index)*age_greater_than_twenty_one, data = easy_data, 
+           family =binomial("logit"))
+
+summary(model_with_interactions)# Model Results + Wald Test
+lrtest(model_with_interactions )# Likelihood Ratio Test
+     
+#summary()# Model Results + Wald Test
+#lrtest()# Likelihood Ratio Test
+#confint()# Confidence Interval
+#broom::tidy(,conf.int = TRUE,exponentiate = TRUE) #Odds ratio and it's 95% CI 
+```
+
+
+
+### 1.2 Scatterplots with Logistic Regression Lines
+
+After running a regression in R, it is possible to generate the predicted values of the outcome from that regression. We can plot the risks, odds, or log odds. The following lines do all three and plot the results on different graphs within the same figure. 
+
+First, run the logistic regression model. 
+```{r}
+model_with_interactions <-glm(contraception_yes ~ age_greater_than_twenty_one+ as.factor(wealth_index) + as.factor(wealth_index)*age_greater_than_twenty_one, data = easy_data, 
+           family =binomial("logit"))
+
+print("Results on log OR scale")
+# Results on the log OR scale
+broom::tidy(model_with_interactions, 
+            conf.int = TRUE)
+
+print("Results on OR scale")
+# Results on the OR scale
+broom::tidy(model_with_interactions, 
+            conf.int = TRUE, 
+            exponentiate = TRUE)
+```
+
+#Then, generate the risk, odds, and log odds from the model.
+```{r}
+# Generate the model-based risk estimates
+#easy_data$pred_risk <- predict(m1, # use the model to...
+                          #type = "response", # predict the risk for...
+                          #newdata = easy_) # the wcgs data
+
+# Generate the model-based odds and log odds estimates
+#wcgs <- wcgs %>%
+  #mutate(pred_odds = pred_risk/(1-pred_risk)) %>%
+  #mutate(pred_log_odds = log(pred_odds))
+```
+
+Finally, plot away!
+```{r}
+risk_plot <- easy_data %>%
+  # the observed data from before
+  ggplot(aes(x = age_greater_than_twenty_one, y = contraception_yes)) + 
+  #geom_point(alpha = 0.5) + 
+  # the fitted line
+  geom_point() 
+  # general formatting
+  #scale_x_continuous("Weight (lbs)", breaks = 0:4, labels = c(unname(TeX("$\\leq 150")),
+                             # "(151,160)",
+                             # "(161,170)",
+                              #"(171,180)",
+                              #">180")) +  
+  #ylab("Risk of CHD") + 
+  #theme_classic()
+
+risk_plot
+```
+
+```{r}
+odds_plot <- risk_table %>%
+  # the observed data from before
+  ggplot(aes(x = wtcat, y = odds)) + 
+  geom_point(alpha = 0.5) + 
+  # the fitted line
+  geom_line(aes(y = pred_odds),
+            data = wcgs,
+            col = "blue") + 
+  # general formatting
+  scale_x_continuous("Weight (lbs)", breaks = 0:4, labels = c(unname(TeX("$\\leq 150")),
+                              "(151,160)",
+                              "(161,170)",
+                              "(171,180)",
+                              ">180")) +  
+  ylab("Odds of CHD") + 
+  theme_classic()
+
+log_odds_plot <- risk_table %>%
+  # the observed data from before
+  ggplot(aes(x = wtcat, y = log.odds)) + 
+  geom_point(alpha = 0.5) + 
+  # the fitted line
+  geom_line(aes(y = pred_log_odds),
+            data = wcgs,
+            col = "blue") + 
+  # general formatting
+  scale_x_continuous("Weight (lbs)", breaks = 0:4, labels = c(unname(TeX("$\\leq 150")),
+                              "(151,160)",
+                              "(161,170)",
+                              "(171,180)",
+                              ">180")) +  
+  ylab("Log odds of CHD") + 
+  theme_classic()
+```
+
+```{r, fig.height = 6, fig.width= 8, fig.cap = "Logistic Model Results"}
+grid.arrange(
+  risk_plot,
+  odds_plot,
+  log_odds_plot,
+  ncol = 2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Model of all variables together and likelihood ratio test of nested models 
   
